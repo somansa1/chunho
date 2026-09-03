@@ -36,10 +36,22 @@ const ROOM_WORDS = [
   "달걀",
 ];
 
+const SUFFIX_CHARS = "abcdefghjkmnpqrstuvwxyz23456789";
+
 export function generateRoomCode(): string {
   const word = ROOM_WORDS[Math.floor(Math.random() * ROOM_WORDS.length)];
   const num = Math.floor(1000 + Math.random() * 9000);
-  return `${word}-${num}`;
+  let suffix = "";
+  for (let i = 0; i < 3; i++) suffix += SUFFIX_CHARS[Math.floor(Math.random() * SUFFIX_CHARS.length)];
+  return `${word}-${num}-${suffix}`;
+}
+
+/** 배포할 때 환경변수(VITE_SYNC_URL / VITE_SYNC_ANON_KEY)가 들어있으면 → 내장 연결 모드 */
+export function getEmbeddedSyncConfig(): { url: string; anonKey: string } | null {
+  const url = import.meta.env.VITE_SYNC_URL?.trim();
+  const anonKey = import.meta.env.VITE_SYNC_ANON_KEY?.trim();
+  if (url && anonKey) return { url, anonKey };
+  return null;
 }
 
 export function validateSyncInput(url: string, anonKey: string): string | null {

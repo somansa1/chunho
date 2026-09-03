@@ -149,7 +149,22 @@ export function connectSync(cfg: SyncConfig, getInitialDoc: () => SyncDoc, ev: S
   };
 }
 
-export function inviteLinkFor(roomCode: string): string {
+/** 초대 링크 — 방 코드에 URL·키까지 담아서 보내면 상대방은 누르기만 하면 돼요 */
+export function inviteLinkFor(roomCode: string, url?: string, anonKey?: string): string {
   const base = `${location.origin}${location.pathname}`;
-  return `${base}?room=${encodeURIComponent(roomCode)}`;
+  const params = new URLSearchParams({ room: roomCode });
+  if (url) params.set("u", url);
+  if (anonKey) params.set("k", anonKey);
+  return `${base}?${params.toString()}`;
+}
+
+export interface InviteParams {
+  room: string | null;
+  url: string | null;
+  key: string | null;
+}
+
+export function readInviteParams(): InviteParams {
+  const sp = new URLSearchParams(location.search);
+  return { room: sp.get("room"), url: sp.get("u"), key: sp.get("k") };
 }

@@ -221,28 +221,65 @@ export default function SyncTab({
         <aside className="space-y-4">
           <div className="card-line rounded-2xl bg-card p-5 shadow-sm">
             <h3 className="flex items-center gap-2 font-display text-lg text-ink">
-              <PhoneIcon size={19} className="text-tomato" /> 와이프 기기에서 켜는 법
+              <PhoneIcon size={19} className="text-tomato" /> 와이프에게 보낼 내용 (한 번에 복사)
+            </h3>
+            <p className="mt-2 text-sm font-light leading-relaxed text-ink-soft">
+              링크·URL·키가 <b className="font-semibold text-ink">전부 들어있는 메시지</b>예요. 복사해서 카톡으로 그대로 붙여넣으면 돼요.
+              와이프는 <b className="font-semibold text-ink">가입도, 만들 것도 없이</b> 붙여넣기만 하면 끝!
+            </p>
+            <div className="relative mt-3">
+              <pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded-xl border-2 border-dashed border-ssam/50 bg-mist/40 p-4 pr-24 text-xs leading-relaxed text-ink">
+                {`💌 우리 저녁 당번 앱 초대!
+
+1) 아래 링크를 누르세요 (폰·PC 아무데서나):
+${inviteLinkFor(config.roomCode)}
+
+2) 「같이 쓰기」 탭에 아래 두 개를 붙여넣으세요:
+
+프로젝트 URL
+${config.url}
+
+anon 키
+${config.anonKey}
+
+3) 「같이 쓰기 시작!」 누르면 연결 완료 ✅`}
+              </pre>
+              <button
+                onClick={() =>
+                  copy(
+                    "message",
+                    `💌 우리 저녁 당번 앱 초대!\n\n1) 아래 링크를 누르세요 (폰·PC 아무데서나):\n${inviteLinkFor(config.roomCode)}\n\n2) 「같이 쓰기」 탭에 아래 두 개를 붙여넣으세요:\n\n프로젝트 URL\n${config.url}\n\nanon 키\n${config.anonKey}\n\n3) 「같이 쓰기 시작!」 누르면 연결 완료 ✅`
+                  )
+                }
+                className="btn-sign btn-sign-green absolute right-2.5 top-2.5 inline-flex items-center gap-1.5 rounded-full bg-ssam px-3.5 py-1.5 font-display text-xs text-card"
+              >
+                {copiedKey === "message" ? <CheckIcon size={13} /> : <CopyIcon size={13} />}
+                {copiedKey === "message" ? "복사 완료!" : "전체 복사"}
+              </button>
+            </div>
+          </div>
+
+          <div className="card-line rounded-2xl bg-card p-5 shadow-sm">
+            <h3 className="flex items-center gap-2 font-display text-lg text-ink">
+              <ShareIcon size={18} className="text-ssam" /> 보낸 뒤, 이렇게 돼요
             </h3>
             <ol className="mt-3 space-y-3 text-sm font-light leading-relaxed text-ink-soft">
               <li className="flex gap-2.5">
                 <MiniNum>1</MiniNum>
                 <span>
-                  <b className="font-semibold text-ink">초대 링크</b>를 카카오톡으로 보내고, 와이프 폰에서 열어요. (방 코드가 자동으로
-                  채워져요)
+                  와이프가 <b className="font-semibold text-ink">링크를 누르면</b> 방 코드가 자동으로 채워져 열려요.
                 </span>
               </li>
               <li className="flex gap-2.5">
                 <MiniNum>2</MiniNum>
                 <span>
-                  <b className="font-semibold text-ink">프로젝트 URL과 anon 키</b>도 같이 보내서 그대로 붙여넣게 해요. (설정 화면
-                  캡처해서 보내도 돼요)
+                  메시지에 들어있는 <b className="font-semibold text-ink">URL과 키를 그대로 붙여넣고</b> 「같이 쓰기 시작!」을 눌러요.
                 </span>
               </li>
               <li className="flex gap-2.5">
                 <MiniNum>3</MiniNum>
                 <span>
-                  「같이 쓰기 시작!」을 누르면 끝 — 그 순간부터 <b className="font-semibold text-ink">한쪽에서 고르면 다른 쪽에 1초 만에</b>{" "}
-                  떠요.
+                  끝 — 그 순간부터 <b className="font-semibold text-ink">한쪽에서 고르면 다른 쪽에 1초 만에</b> 떠요.
                 </span>
               </li>
             </ol>

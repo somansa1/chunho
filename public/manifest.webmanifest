@@ -1,0 +1,16 @@
+{
+  "name": "오늘 저녁 뭐 먹지?",
+  "short_name": "저녁뭐먹지",
+  "description": "우리 둘의 저녁 당번 기록장 — 랜덤 메뉴 뽑기, 메뉴판, 저녁 이력 관리",
+  "lang": "ko",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f4f5ea",
+  "theme_color": "#f4f5ea",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

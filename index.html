@@ -19,10 +19,40 @@
         padding: 0;
         background-color: #f4f5ea;
       }
+      @keyframes boot-bob {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-8px);
+        }
+      }
+      .boot-dot {
+        animation: boot-bob 1.4s ease-in-out infinite;
+      }
     </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div
+        style="
+          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          background: #f4f5ea;
+          font-family: sans-serif;
+          color: #22301f;
+        "
+      >
+        <div class="boot-dot" style="font-size: 46px; line-height: 1">🍲</div>
+        <p style="margin: 0; font-weight: 700; font-size: 19px">오늘 저녁 뭐 먹지?</p>
+        <p style="margin: 0; font-size: 13px; color: #5b6752">저녁 기록장을 차리는 중…</p>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

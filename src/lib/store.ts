@@ -1,29 +1,46 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { HistoryEntry, Menu, Settings } from "../types";
 
 /* ---------------- persistence ---------------- */
 
+/** 샌드박스 아이프레임 등에서 localStorage가 통째로 막혀 있어도 절대 throw 하지 않는다 */
+function storageGet(key: string): string | null {
+  try {
+    if (typeof window === "undefined" || !window.localStorage) return null;
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function storageSet(key: string, value: string): void {
+  try {
+    if (typeof window === "undefined" || !window.localStorage) return;
+    window.localStorage.setItem(key, value);
+  } catch {
+    /* storage full / private mode / sandbox — 무시 */
+  }
+}
+
 export function usePersistentState<T>(key: string, initial: T | (() => T)) {
   const [state, setState] = useState<T>(() => {
-    try {
-      const raw = localStorage.getItem(key);
-      if (raw !== null) return JSON.parse(raw) as T;
-    } catch {
-      /* corrupt data — fall through to initial */
+    const raw = storageGet(key);
+    if (raw !== null) {
+      try {
+        return JSON.parse(raw) as T;
+      } catch {
+        /* 깨진 데이터 — 초기값으로 */
+      }
     }
-    return typeof initial === "function" ? (initial as () => T)() : initial;
+    try {
+      return typeof initial === "function" ? (initial as () => T)() : initial;
+    } catch {
+      return undefined as T;
+    }
   });
 
-  const first = useRef(true);
   useEffect(() => {
-    if (first.current) {
-      first.current = false;
-    }
-    try {
-      localStorage.setItem(key, JSON.stringify(state));
-    } catch {
-      /* storage full / private mode — ignore */
-    }
+    storageSet(key, JSON.stringify(state));
   }, [key, state]);
 
   return [state, setState] as const;

@@ -145,9 +145,11 @@ export default function SyncTab({
             이 방 코드가 들어간 기기는 저녁 기록을 <b className="font-semibold text-egg">실시간으로 공유</b>해요.
           </p>
 
-          <div className="mt-5 rounded-2xl bg-paper/10 p-5 text-center">
+          <div className="mt-5 rounded-2xl bg-paper/10 p-4 text-center sm:p-5">
             <p className="text-xs font-semibold tracking-widest text-mist/70">방 코드</p>
-            <p className="mt-1 select-all font-display text-4xl tracking-wide text-paper sm:text-5xl">{config.roomCode}</p>
+            <p className="mt-1 select-all break-all font-display text-3xl leading-tight tracking-wide text-paper sm:text-4xl lg:text-5xl">
+              {config.roomCode}
+            </p>
           </div>
 
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
@@ -447,7 +449,7 @@ ${config.anonKey}
         </div>
 
         {/* 연결 폼 */}
-        <div className="card-line sticky top-20 rounded-2xl border-ssam/60 bg-card p-6 shadow-lift">
+        <div className="card-line rounded-2xl border-ssam/60 bg-card p-6 shadow-lift lg:sticky lg:top-24">
           <h3 className="flex items-center gap-2 font-display text-xl text-ink">
             <CloudIcon size={21} className="text-ssam" /> 연결 정보 넣기
           </h3>

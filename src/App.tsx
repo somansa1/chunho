@@ -275,21 +275,26 @@ export default function App() {
 
       {/* ---------- 탭 ---------- */}
       <nav className="sticky top-0 z-20 border-b border-line bg-paper/95 shadow-[0_2px_10px_rgb(34_48_31_/_0.05)] backdrop-blur-sm">
-        <div className="mx-auto flex max-w-6xl gap-1.5 overflow-x-auto px-4 py-2.5 sm:px-6">
+        {/* 모바일: 선택된 탭만 글자 표시(나머진 아이콘) · PC: 전부 글자 표시 */}
+        <div className="mx-auto flex max-w-6xl justify-start gap-1.5 overflow-x-auto px-3 py-2 sm:px-6 sm:py-2.5 lg:justify-center">
           {TABS.map((t) => {
             const active = tab === t.id;
             return (
               <button
                 key={t.id}
                 onClick={() => setTab(t.id)}
-                className={`relative flex shrink-0 items-center gap-2 rounded-full px-4 py-2 font-display text-[15px] transition-all sm:px-5 ${
-                  active ? "bg-ink text-paper shadow-sm" : "text-ink-soft hover:bg-mist hover:text-ink"
-                }`}
+                title={t.label}
+                aria-label={t.label}
+                className={`relative flex shrink-0 items-center gap-1.5 rounded-full py-2 font-display text-[15px] transition-all ${
+                  active ? "px-3.5 sm:px-5" : "px-2.5 sm:px-4"
+                } ${active ? "bg-ink text-paper shadow-sm" : "text-ink-soft hover:bg-mist hover:text-ink"}`}
               >
                 {t.icon({ size: 17, className: active ? "text-egg" : undefined })}
-                {t.label}
+                <span className={active ? "whitespace-nowrap" : "hidden whitespace-nowrap sm:inline"}>{t.label}</span>
                 {t.id === "log" && unrated > 0 && (
-                  <span className="ml-0.5 rounded-full bg-tomato px-1.5 py-px text-[11px] leading-4 text-card">{unrated}</span>
+                  <span className={`rounded-full bg-tomato px-1.5 py-px text-[11px] leading-4 text-card ${active ? "ml-0.5" : "sm:ml-0.5"}`}>
+                    {unrated}
+                  </span>
                 )}
               </button>
             );
@@ -379,15 +384,16 @@ export default function App() {
       </main>
 
       {/* ---------- 푸터 ---------- */}
-      <footer className="mt-6 border-t-2 border-ink/10 bg-mist/50 py-7">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 text-sm text-ink-soft sm:px-6">
-          <p className="flex items-center gap-2 font-light">
-            <PotIcon size={17} className="text-tomato" />
+      <footer className="mt-6 border-t-2 border-ink/10 bg-mist/50 py-6 sm:py-7">
+        <div className="mx-auto flex max-w-6xl flex-col items-center gap-2.5 px-5 text-center text-[13px] leading-relaxed text-ink-soft sm:flex-row sm:justify-between sm:gap-3 sm:px-6 sm:text-left sm:text-sm">
+          <p className="flex items-start justify-center gap-2 font-light sm:justify-start">
+            <PotIcon size={17} className="mt-0.5 shrink-0 text-tomato" />
             <span>
-              <b className="font-semibold text-ink">오늘 저녁 뭐 먹지?</b> — 모든 데이터는 이 브라우저에 저장돼요. 백업은 이력 탭에서!
+              <b className="font-semibold text-ink">오늘 저녁 뭐 먹지?</b> — 기록은 이 기기에 저장되고, 「같이 쓰기」를 켜면 둘이 실시간
+              공유돼요.
             </span>
           </p>
-          <p className="font-display text-xs text-ink-soft/80">오늘도 맛있게, 둘이서 🍚</p>
+          <p className="shrink-0 font-display text-xs text-ink-soft/80">오늘도 맛있게, 둘이서 🍚</p>
         </div>
       </footer>
 
@@ -398,7 +404,7 @@ export default function App() {
             initial={{ opacity: 0, y: 24, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 12, scale: 0.95 }}
-            className={`fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full border-2 px-6 py-3 font-display text-[15px] shadow-lift ${
+            className={`fixed bottom-5 left-1/2 z-50 w-max max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-full border-2 px-5 py-2.5 text-center font-display text-sm shadow-lift sm:bottom-6 sm:px-6 sm:py-3 sm:text-[15px] ${
               toast.tone === "ok" ? "border-ssam-deep bg-ssam text-card" : "border-tomato-deep bg-tomato text-card"
             }`}
           >

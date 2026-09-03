@@ -288,22 +288,66 @@ export default function SyncTab({
         {/* 단계들 */}
         <div className="space-y-4">
           <StepCard n={1} title="Supabase 무료 가입 + 프로젝트 만들기">
-            <ol className="list-decimal space-y-1.5 pl-4">
-              <li>
-                <b className="font-semibold text-ink">supabase.com</b> 접속 → 구글 계정으로 가입 (카드 없이 무료)
+            <GoLink href="https://supabase.com/dashboard" label="Supabase 대시보드 새 탭으로 열기" />
+            <ul className="mt-2.5 space-y-1.5">
+              <li className="flex gap-2">
+                <MiniNum>①</MiniNum>
+                <span>
+                  <b className="font-semibold text-ink">supabase.com</b> → <b className="font-semibold text-ink">Start your project</b> → 구글
+                  또는 GitHub 계정으로 가입 (카드 등록 없이 무료)
+                </span>
               </li>
-              <li>
-                <b className="font-semibold text-ink">New Project</b> 누르기 → 비밀번호 아무거나, 지역은 가까운 곳(예: Northeast Asia)
+              <li className="flex gap-2">
+                <MiniNum>②</MiniNum>
+                <span>
+                  대시보드에서 <b className="font-semibold text-ink">New Project</b> 버튼 (오른쪽 위) 누르기
+                </span>
               </li>
-              <li>만들어질 때까지 1분 정도 기다려요. 커피 한 모금.</li>
-            </ol>
+              <li className="flex gap-2">
+                <MiniNum>③</MiniNum>
+                <span>
+                  이름 아무거나(예: <code className="rounded bg-mist px-1.5 py-0.5 font-mono text-xs">dinner</code>), Database
+                  Password는 자동으로 만들어 주니 그냥 두기, <b className="font-semibold text-ink">Region</b>은{" "}
+                  <b className="font-semibold text-ink">Northeast Asia (Tokyo)</b> 추천, 요금제는 Free →{" "}
+                  <b className="font-semibold text-ink">Create new project</b>
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <MiniNum>④</MiniNum>
+                <span>1~2분 기다리면 화면이 완성돼요. 커피 한 모금.</span>
+              </li>
+            </ul>
           </StepCard>
 
           <StepCard n={2} title="SQL 한 번 실행하기 (복붙만 하면 돼요)">
-            <p>
-              왼쪽 메뉴에서 <b className="font-semibold text-ink">SQL Editor</b> → <b className="font-semibold text-ink">New query</b> →
-              아래를 통째로 붙여넣고 <b className="font-semibold text-ink">Run</b> 누르기.
-            </p>
+            <ul className="space-y-1.5">
+              <li className="flex gap-2">
+                <MiniNum>①</MiniNum>
+                <span>
+                  왼쪽 아이콘 메뉴에서 <b className="font-semibold text-ink">SQL Editor</b> 누르기 (터미널 모양 아이콘)
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <MiniNum>②</MiniNum>
+                <span>
+                  <b className="font-semibold text-ink">New query</b> 버튼 누르기
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <MiniNum>③</MiniNum>
+                <span>
+                  아래 SQL을 <b className="font-semibold text-ink">통째로 붙여넣고</b> 아래쪽 초록 <b className="font-semibold text-ink">Run</b>{" "}
+                  버튼 누르기 (Ctrl+Enter도 됨)
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <MiniNum>④</MiniNum>
+                <span>
+                  아래 결과창에 <b className="font-semibold text-ssam-deep">Success. No rows returned</b> 라고 나오면 성공이에요! (데이터가
+                  없는 게 정상이에요)
+                </span>
+              </li>
+            </ul>
             <div className="relative mt-3">
               <pre className="overflow-x-auto rounded-xl border-2 border-ink bg-ink p-4 font-mono text-[11.5px] leading-relaxed text-mist">
                 {SETUP_SQL}
@@ -316,21 +360,44 @@ export default function SyncTab({
                 {copiedKey === "sql" ? "복사 완료!" : "SQL 복사"}
               </button>
             </div>
+            <p className="mt-2.5 rounded-xl bg-egg/20 px-3.5 py-2 text-xs font-medium leading-relaxed text-[#8a6200]">
+              혹시 다시 실행했는데 <b>already added to publication</b> 같은 에러가 나와도 괜찮아요 — 표는 이미 만들어진 거예요.
+            </p>
           </StepCard>
 
           <StepCard n={3} title="URL이랑 키 2개 가져오기">
-            <p>
-              왼쪽 메뉴 <b className="font-semibold text-ink">Project Settings → API</b> 화면에서 두 개를 복사해요.
-            </p>
-            <ul className="mt-2 space-y-1.5">
-              <li className="flex items-center gap-2">
-                <MiniNum>①</MiniNum> <b className="font-semibold text-ink">Project URL</b> — https://xxxx.supabase.co 모양
+            <ul className="space-y-1.5">
+              <li className="flex gap-2">
+                <MiniNum>①</MiniNum>
+                <span>
+                  왼쪽 메뉴 맨 아래 <b className="font-semibold text-ink">톱니바퀴 아이콘 (Project Settings)</b> 누르기
+                </span>
               </li>
-              <li className="flex items-center gap-2">
-                <MiniNum>②</MiniNum> <b className="font-semibold text-ink">Project API keys</b> 중 <code className="rounded bg-mist px-1.5 py-0.5 font-mono text-xs">anon</code>{" "}
-                <code className="rounded bg-mist px-1.5 py-0.5 font-mono text-xs">public</code> 키 (길쭉한 문자열)
+              <li className="flex gap-2">
+                <MiniNum>②</MiniNum>
+                <span>
+                  설정 메뉴에서 <b className="font-semibold text-ink">API</b> 누르기
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <MiniNum>③</MiniNum>
+                <span>
+                  <b className="font-semibold text-ink">Project URL</b> 옆 복사 버튼 — <code className="rounded bg-mist px-1.5 py-0.5 font-mono text-xs">https://xxxx.supabase.co</code>{" "}
+                  모양이에요
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <MiniNum>④</MiniNum>
+                <span>
+                  아래 <b className="font-semibold text-ink">Project API keys</b> 목록에서{" "}
+                  <code className="rounded bg-mist px-1.5 py-0.5 font-mono text-xs">anon</code>{" "}
+                  <code className="rounded bg-mist px-1.5 py-0.5 font-mono text-xs">public</code> 이라고 적힌 긴 문자열 복사
+                </span>
               </li>
             </ul>
+            <p className="mt-2.5 rounded-xl bg-tomato/10 px-3.5 py-2 text-xs font-medium leading-relaxed text-tomato-deep">
+              ⚠ 바로 아래 <b>service_role / secret</b> 키는 관리자용이라 절대 쓰면 안 돼요. 꼭 <b>anon public</b> 쪽을 복사하세요.
+            </p>
           </StepCard>
 
           <StepCard n={4} title="오른쪽 상자에 붙여넣고 시작!">
@@ -445,5 +512,18 @@ function MiniNum({ children }: { children: React.ReactNode }) {
     <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-egg font-display text-[11px] text-ink">
       {children}
     </span>
+  );
+}
+
+function GoLink({ href, label }: { href: string; label: string }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className="inline-flex items-center gap-1.5 rounded-full border-2 border-ink bg-ink px-3.5 py-1.5 font-display text-xs text-paper transition hover:bg-ssam-deep hover:border-ssam-deep"
+    >
+      <LinkIcon size={13} className="text-egg" /> {label} ↗
+    </a>
   );
 }

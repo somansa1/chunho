@@ -38,7 +38,7 @@ drop policy if exists "dinner duo sync" on public.dinner_sync;
 create policy "dinner duo sync" on public.dinner_sync
   for all to anon using (true) with check (true);
 
--- 3) 실시간 동기화 켜기
+-- 3) 실시간 동기화 켜기 (선택 — 안 돼도 12초 자동 새로고침으로 동기화돼요)
 -- (이미 추가돼 있다는 에러가 나오면 무시하고 넘어가면 돼요)
 alter publication supabase_realtime add table public.dinner_sync;`;
 
@@ -161,7 +161,9 @@ export default function SyncTab({
           </div>
 
           <p className="mt-1.5 text-sm font-light text-mist/80">
-            이 방 코드가 들어간 기기는 저녁 기록을 <b className="font-semibold text-egg">실시간으로 공유</b>해요.
+            이 방 코드가 들어간 기기는 저녁 기록을 <b className="font-semibold text-egg">실시간으로 공유</b>해요. 실시간 알림이 안
+            닿는 환경이어도 <b className="font-semibold text-egg">12초 자동 새로고침</b>으로 맞춰지고, 앱을 여는 순간 바로 최신이
+            돼요.
           </p>
 
           <div className="mt-5 rounded-2xl bg-paper/10 p-4 text-center sm:p-5">

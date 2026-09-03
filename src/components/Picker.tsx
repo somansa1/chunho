@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { HistoryEntry, Menu, PickedBy, Settings, Tonight } from "../types";
 import { CATEGORY_STYLE } from "../types";
 import { recentNames, weightedPick, type PickResult } from "../lib/store";
-import { BowlIcon, CheckIcon, DiceIcon, FlameIcon, HeartIcon, RefreshIcon, SparkIcon } from "./icons";
+import { BowlIcon, CheckIcon, DiceIcon, FlameIcon, HeartIcon, PhoneIcon, RefreshIcon, SparkIcon } from "./icons";
 
 interface Props {
   menus: Menu[];
@@ -295,6 +295,29 @@ export default function Picker({ menus, history, settings, onSettings, tonight, 
               <Step n="4" /> 다 먹고 나면 이력에서 <b className="font-semibold text-ink">별점과 한줄평</b>을 남기기!
             </li>
           </ol>
+        </div>
+
+        {/* 핸드폰 설치 안내 */}
+        <div className="card-line rounded-2xl border-ink bg-ink p-5 text-paper shadow-lift">
+          <h3 className="flex items-center gap-2 font-display text-lg text-egg">
+            <PhoneIcon size={19} /> 내 핸드폰에 앱처럼 쓰기
+          </h3>
+          <ol className="mt-3 space-y-2.5 text-sm font-light leading-relaxed text-mist">
+            <li className="flex gap-2.5">
+              <Step n="1" /> 이 화면 주소를 <b className="font-semibold text-paper">핸드폰 브라우저</b>로 열어요. (PC와 같은 주소)
+            </li>
+            <li className="flex gap-2.5">
+              <Step n="2" /> iPhone은 공유 버튼 → 「홈 화면에 추가」, 갤럭시·크롬은 메뉴(⋮) → 「앱 설치」를 눌러요.
+            </li>
+            <li className="flex gap-2.5">
+              <Step n="3" /> 홈 화면 아이콘으로 전체화면 실행! <b className="font-semibold text-paper">데이터 없이도</b> 열려요.
+            </li>
+          </ol>
+          <p className="mt-3.5 rounded-xl bg-paper/10 px-3.5 py-2.5 text-xs font-light leading-relaxed text-mist">
+            <span className="mr-1.5 rounded bg-egg px-1.5 py-0.5 font-display text-[10px] text-ink">TIP</span>
+            저녁 기록은 <b className="font-semibold text-egg">기기별 브라우저</b>에 저장돼요. 폰↔PC 이동은 저녁 이력 탭 →{" "}
+            <b className="font-semibold text-egg">전체 백업 / 백업 불러오기</b>로!
+          </p>
         </div>
       </aside>
     </div>

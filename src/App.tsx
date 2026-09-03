@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import confetti from "canvas-confetti";
 import type { HistoryEntry, Menu, PickedBy, Settings, Tonight } from "./types";
@@ -17,9 +17,14 @@ import Picker from "./components/Picker";
 import MenuBoard from "./components/MenuBoard";
 import HistoryLog from "./components/HistoryLog";
 import StatsBoard from "./components/StatsBoard";
-import { BowlIcon, BookIcon, CalendarIcon, ChartIcon, DiceIcon, PotIcon } from "./components/icons";
+import { BowlIcon, BookIcon, CalendarIcon, ChartIcon, DiceIcon, DownloadIcon, PotIcon } from "./components/icons";
 
 type TabId = "pick" | "menu" | "log" | "stats";
+
+interface InstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: string }>;
+}
 
 const TABS: { id: TabId; label: string; icon: (p: { size?: number; className?: string }) => ReactNode }[] = [
   { id: "pick", label: "랜덤 뽑기", icon: (p) => <DiceIcon {...p} /> },
@@ -39,6 +44,16 @@ export default function App() {
   const [tab, setTab] = useState<TabId>("pick");
   const [toast, setToast] = useState<{ msg: string; tone: "ok" | "err" } | null>(null);
   const toastTimer = useRef<number>(0);
+  const [installEvt, setInstallEvt] = useState<InstallPromptEvent | null>(null);
+
+  useEffect(() => {
+    const onPrompt = (e: Event) => {
+      e.preventDefault();
+      setInstallEvt(e as InstallPromptEvent);
+    };
+    window.addEventListener("beforeinstallprompt", onPrompt);
+    return () => window.removeEventListener("beforeinstallprompt", onPrompt);
+  }, []);
 
   const today = todayStr();
   const tonightValid = tonight && tonight.date === today ? tonight : null;
@@ -125,6 +140,21 @@ export default function App() {
               <span className="rounded-full border-2 border-dashed border-line px-3.5 py-1 font-display text-sm text-ink-soft">
                 오늘 저녁 미정
               </span>
+            )}
+            {installEvt && (
+              <button
+                onClick={async () => {
+                  try {
+                    await installEvt.prompt();
+                  } catch {
+                    /* 사용자가 닫음 */
+                  }
+                  setInstallEvt(null);
+                }}
+                className="btn-sign btn-sign-ink inline-flex items-center gap-1.5 rounded-full bg-egg px-3.5 py-1 font-display text-sm text-ink"
+              >
+                <DownloadIcon size={14} /> 앱으로 설치
+              </button>
             )}
           </div>
         </div>

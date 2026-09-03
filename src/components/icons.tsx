@@ -206,6 +206,15 @@ export function BowlIcon(p: P) {
   );
 }
 
+export function PhoneIcon(p: P) {
+  return (
+    <svg {...base(p)}>
+      <rect x="7" y="2.5" width="10" height="19" rx="2.8" />
+      <path d="M10.5 18.3h3" />
+    </svg>
+  );
+}
+
 export function SparkIcon(p: P) {
   return (
     <svg {...base(p)}>

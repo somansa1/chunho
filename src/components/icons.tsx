@@ -234,6 +234,36 @@ export function LinkIcon(p: P) {
   );
 }
 
+/** 공유 노드 — 같이 쓰기 */
+export function ShareIcon(p: P) {
+  return (
+    <svg {...base(p)}>
+      <circle cx="6" cy="12" r="2.6" />
+      <circle cx="17.5" cy="5.5" r="2.6" />
+      <circle cx="17.5" cy="18.5" r="2.6" />
+      <path d="M8.4 10.8l6.8-4M8.4 13.2l6.8 4" />
+    </svg>
+  );
+}
+
+export function CopyIcon(p: P) {
+  return (
+    <svg {...base(p)}>
+      <rect x="8.5" y="8.5" width="12" height="12" rx="2.5" />
+      <path d="M15.5 5.5v-1a2 2 0 0 0-2-2h-8a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h1" />
+    </svg>
+  );
+}
+
+export function CloudIcon(p: P) {
+  return (
+    <svg {...base(p)}>
+      <path d="M7 18.5a4.5 4.5 0 0 1-.6-8.96 5.5 5.5 0 0 1 10.7 1.2A3.9 3.9 0 0 1 16.5 18.5Z" />
+      <path d="M9.5 14.5l2 2 3-3.5" />
+    </svg>
+  );
+}
+
 export function SparkIcon(p: P) {
   return (
     <svg {...base(p)}>

@@ -75,6 +75,8 @@ export default function App() {
   const [syncStatus, setSyncStatus] = useState<SyncStatus>("off");
   const [syncMsg, setSyncMsg] = useState("");
   const [lastSyncAt, setLastSyncAt] = useState<number | null>(null);
+  const [onlineCount, setOnlineCount] = useState(1);
+  const [waveKey, setWaveKey] = useState(0);
   const syncRef = useRef<SyncHandle | null>(null);
   const applyingRemote = useRef(false);
   const syncReady = useRef(false);
@@ -114,6 +116,8 @@ export default function App() {
       onReady: () => {
         syncReady.current = true;
       },
+      onPresence: (count) => setOnlineCount(Math.max(1, count)),
+      onWave: () => setWaveKey((k) => k + 1),
     });
     syncRef.current = handle;
     return () => {
@@ -142,6 +146,19 @@ export default function App() {
     syncRef.current.push({ ...latest.current, savedAt: Date.now() });
     showToast("지금 동기화했어요");
   }, [showToast]);
+
+  const sendWave = useCallback(() => {
+    if (!syncRef.current) return;
+    syncRef.current.wave();
+    showToast("👋 파트너에게 손 흔들었어요!");
+  }, [showToast]);
+
+  // 손 흔들기 오버레이는 2.5초 뒤 자동으로 사라져요
+  useEffect(() => {
+    if (waveKey === 0) return;
+    const t = window.setTimeout(() => setWaveKey(0), 2500);
+    return () => window.clearTimeout(t);
+  }, [waveKey]);
 
   /* ---------- 저녁 확정 ---------- */
   const confirmDinner = useCallback(
@@ -367,6 +384,7 @@ export default function App() {
                 lastSyncAt={lastSyncAt}
                 menuCount={menus.length}
                 historyCount={history.length}
+                onlineCount={onlineCount}
                 onEnable={(cfg) => {
                   setSyncCfg(cfg);
                   showToast("같이 쓰기를 켜는 중이에요…");
@@ -376,6 +394,7 @@ export default function App() {
                   showToast("같이 쓰기를 껐어요. 기록은 이 기기에 그대로 있어요.");
                 }}
                 onForceSync={forceSync}
+                onWave={sendWave}
               />
             )}
             {tab === "guide" && <HelpGuide />}
@@ -412,7 +431,47 @@ export default function App() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ---------- 파트너 손 흔들기 수신 ---------- */}
+      <WaveOverlay waveKey={waveKey} />
     </div>
+  );
+}
+
+/** 파트너가 손 흔들면 화면 한가운데 커다란 👋 가 나타난다 */
+function WaveOverlay({ waveKey }: { waveKey: number }) {
+  return (
+    <AnimatePresence>
+      {waveKey > 0 && (
+        <motion.div
+          key={waveKey}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.25 }}
+          className="pointer-events-none fixed inset-0 z-[60] flex items-center justify-center bg-ink/40 backdrop-blur-[2px]"
+        >
+          <motion.div
+            initial={{ scale: 0.4, rotate: -14 }}
+            animate={{ scale: 1, rotate: 0 }}
+            exit={{ scale: 0.7, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 260, damping: 18 }}
+            className="flex flex-col items-center gap-2"
+          >
+            <motion.span
+              className="text-8xl sm:text-9xl"
+              animate={{ rotate: [0, -22, 16, -22, 16, 0] }}
+              transition={{ duration: 1.1, repeat: Infinity, ease: "easeInOut" }}
+            >
+              👋
+            </motion.span>
+            <p className="rounded-full border-2 border-egg bg-ink px-5 py-2 font-display text-lg text-egg shadow-lift">
+              파트너가 손 흔들었어요!
+            </p>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 

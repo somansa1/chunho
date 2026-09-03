@@ -62,11 +62,17 @@ export interface SyncEvents {
   onPushed: (savedAt: number) => void;
   /** 초기 로딩(방 확인/생성) 완료 — 이 시점 이후부터 업로드 허용 */
   onReady: () => void;
+  /** 지금 방에 접속 중인 기기 수 */
+  onPresence?: (count: number) => void;
+  /** 파트너가 손 흔들기 보냄 */
+  onWave?: () => void;
 }
 
 export interface SyncHandle {
   push: (doc: SyncDoc) => Promise<boolean>;
   disconnect: () => void;
+  /** 파트너에게 손 흔들기 */
+  wave: () => void;
 }
 
 function isSyncDoc(x: unknown): x is SyncDoc {
@@ -74,31 +80,68 @@ function isSyncDoc(x: unknown): x is SyncDoc {
   return !!d && Array.isArray(d.menus) && Array.isArray(d.history) && typeof d.savedAt === "number";
 }
 
+/** 자동 새로고침 주기 — 실시간이 안 되는 환경에서도 이 간격으로 최신 상태를 가져와요 */
+const POLL_MS = 12000;
+
 export function connectSync(cfg: SyncConfig, getInitialDoc: () => SyncDoc, ev: SyncEvents): SyncHandle {
   const client: SupabaseClient = createClient(cfg.url.trim(), cfg.anonKey.trim());
-  const channelName = `dinner-duo-${cfg.roomCode}`;
   let disposed = false;
+  let realtimeOk = false;
+  let ready = false;
 
+  const setOnline = () =>
+    ev.onStatus("online", realtimeOk ? "실시간 연결됨 — 바뀌는 즉시 반영돼요." : "자동 새로고침(12초)으로 동기화 중이에요.");
+
+  /** 서버에서 방 문서 가져오기 — 최신이면 화면에 반영 */
+  const pull = async () => {
+    if (disposed) return;
+    const { data, error } = await client.from(TABLE).select("payload").eq("doc_id", cfg.roomCode).maybeSingle();
+    if (disposed) return;
+    if (error) {
+      ev.onStatus("error", `서버 확인 실패: ${error.message}`);
+      return;
+    }
+    setOnline();
+    const doc = data?.payload;
+    if (isSyncDoc(doc)) ev.onRemote(doc, "live");
+  };
+
+  // 실시간 채널 — 필터 없이 구독하고(한글 방 코드 필터 문제 회피) 방 코드는 여기서 비교
   const channel: RealtimeChannel = client
-    .channel(channelName)
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: TABLE, filter: `doc_id=eq.${cfg.roomCode}` },
-      (payload) => {
-        const next = (payload.new as { payload?: unknown } | null)?.payload;
-        if (isSyncDoc(next)) ev.onRemote(next, "live");
-      }
-    )
-    .subscribe((status) => {
+    .channel(`dinner-duo-${cfg.roomCode}`)
+    .on("postgres_changes", { event: "*", schema: "public", table: TABLE }, (payload) => {
+      const next = payload.new as { doc_id?: string; payload?: unknown } | null;
+      if (next && next.doc_id === cfg.roomCode && isSyncDoc(next.payload)) ev.onRemote(next.payload, "live");
+    })
+    // 지금 방에 몇 명이 있는지 실시간 감지
+    .on("presence", { event: "sync" }, () => {
       if (disposed) return;
-      if (status === "SUBSCRIBED") ev.onStatus("online", "실시간 연결 완료 — 변경사항이 바로 동기화돼요.");
-      else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT")
-        ev.onStatus("error", "실시간 연결에 실패했어요. 인터넷 연결을 확인해 주세요.");
+      ev.onPresence?.(Object.keys(channel.presenceState()).length);
+    })
+    // 파트너의 손 흔들기 수신
+    .on("broadcast", { event: "wave" }, () => {
+      if (!disposed) ev.onWave?.();
+    })
+    .subscribe(async (status) => {
+      if (disposed) return;
+      if (status === "SUBSCRIBED") {
+        realtimeOk = true;
+        // 접속자 등록 — 이걸로 상대 화면에 내가 보여요
+        try {
+          await channel.track({ joinedAt: Date.now() });
+        } catch {
+          /* presence 미지원 시 무시 */
+        }
+        setOnline();
+      } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+        realtimeOk = false;
+        if (ready) setOnline(); // 실시간이 죽어도 자동 새로고침으로 계속 동작
+      }
     });
 
   ev.onStatus("connecting", "공유 냉장고 문을 여는 중…");
 
-  // 1) 방에 이미 문서가 있나 확인 → 있으면 가져오고, 없으면 내 데이터로 방 만들기
+  // 방에 문서가 없으면 내 데이터로 만들고, 있으면 그걸로 시작
   (async () => {
     const { data, error } = await client.from(TABLE).select("payload").eq("doc_id", cfg.roomCode).maybeSingle();
     if (disposed) return;
@@ -121,10 +164,19 @@ export function connectSync(cfg: SyncConfig, getInitialDoc: () => SyncDoc, ev: S
         return;
       }
       ev.onPushed(seed.savedAt);
-      ev.onStatus("online", "새 같이쓰기 방을 열었어요. 방 코드를 와이프께 알려주세요!");
+      ev.onStatus("online", "새 같이쓰기 방을 열었어요. 초대 링크를 보내세요!");
     }
+    ready = true;
+    setOnline();
     ev.onReady();
   })();
+
+  // 자동 새로고침 + 화면을 켤 때마다 즉시 확인 (폰에서 앱 열면 바로 최신!)
+  const interval = window.setInterval(() => void pull(), POLL_MS);
+  const onVisible = () => {
+    if (!disposed && document.visibilityState === "visible") void pull();
+  };
+  document.addEventListener("visibilitychange", onVisible);
 
   return {
     async push(doc) {
@@ -137,11 +189,17 @@ export function connectSync(cfg: SyncConfig, getInitialDoc: () => SyncDoc, ev: S
         return false;
       }
       ev.onPushed(doc.savedAt);
-      ev.onStatus("online", "");
+      setOnline();
       return true;
+    },
+    wave() {
+      if (disposed) return;
+      void channel.send({ type: "broadcast", event: "wave", payload: { at: Date.now() } });
     },
     disconnect() {
       disposed = true;
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
       client.removeChannel(channel).catch(() => {
         /* 이미 닫힘 */
       });

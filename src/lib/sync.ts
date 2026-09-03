@@ -62,11 +62,17 @@ export interface SyncEvents {
   onPushed: (savedAt: number) => void;
   /** 초기 로딩(방 확인/생성) 완료 — 이 시점 이후부터 업로드 허용 */
   onReady: () => void;
+  /** 지금 방에 접속 중인 기기 수 */
+  onPresence?: (count: number) => void;
+  /** 파트너가 손 흔들기 보냄 */
+  onWave?: () => void;
 }
 
 export interface SyncHandle {
   push: (doc: SyncDoc) => Promise<boolean>;
   disconnect: () => void;
+  /** 파트너에게 손 흔들기 */
+  wave: () => void;
 }
 
 function isSyncDoc(x: unknown): x is SyncDoc {
@@ -107,10 +113,25 @@ export function connectSync(cfg: SyncConfig, getInitialDoc: () => SyncDoc, ev: S
       const next = payload.new as { doc_id?: string; payload?: unknown } | null;
       if (next && next.doc_id === cfg.roomCode && isSyncDoc(next.payload)) ev.onRemote(next.payload, "live");
     })
-    .subscribe((status) => {
+    // 지금 방에 몇 명이 있는지 실시간 감지
+    .on("presence", { event: "sync" }, () => {
+      if (disposed) return;
+      ev.onPresence?.(Object.keys(channel.presenceState()).length);
+    })
+    // 파트너의 손 흔들기 수신
+    .on("broadcast", { event: "wave" }, () => {
+      if (!disposed) ev.onWave?.();
+    })
+    .subscribe(async (status) => {
       if (disposed) return;
       if (status === "SUBSCRIBED") {
         realtimeOk = true;
+        // 접속자 등록 — 이걸로 상대 화면에 내가 보여요
+        try {
+          await channel.track({ joinedAt: Date.now() });
+        } catch {
+          /* presence 미지원 시 무시 */
+        }
         setOnline();
       } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
         realtimeOk = false;
@@ -170,6 +191,10 @@ export function connectSync(cfg: SyncConfig, getInitialDoc: () => SyncDoc, ev: S
       ev.onPushed(doc.savedAt);
       setOnline();
       return true;
+    },
+    wave() {
+      if (disposed) return;
+      void channel.send({ type: "broadcast", event: "wave", payload: { at: Date.now() } });
     },
     disconnect() {
       disposed = true;

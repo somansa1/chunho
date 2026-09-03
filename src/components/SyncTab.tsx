@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import type { SyncConfig, SyncStatus } from "../lib/sync";
 import { generateRoomCode, inviteLinkFor, readInviteParams, validateSyncInput } from "../lib/sync";
 import {
@@ -20,9 +21,11 @@ interface Props {
   lastSyncAt: number | null;
   menuCount: number;
   historyCount: number;
+  onlineCount: number;
   onEnable: (cfg: SyncConfig) => void;
   onDisable: () => void;
   onForceSync: () => void;
+  onWave: () => void;
 }
 
 const SETUP_SQL = `-- 1) 동기화 테이블 만들기
@@ -84,9 +87,11 @@ export default function SyncTab({
   lastSyncAt,
   menuCount,
   historyCount,
+  onlineCount,
   onEnable,
   onDisable,
   onForceSync,
+  onWave,
 }: Props) {
   const invited = useMemo(() => readInviteParams(), []);
 
@@ -154,10 +159,21 @@ export default function SyncTab({
             <h2 className="flex items-center gap-2 font-display text-2xl text-egg">
               <ShareIcon size={22} /> 우리의 저녁 방
             </h2>
-            <span className="inline-flex items-center gap-2 rounded-full border border-paper/25 px-3.5 py-1 font-display text-sm">
-              <span className={`h-2.5 w-2.5 rounded-full ${dot} ${status === "online" ? "animate-pulse" : ""}`} />
-              {statusLabel}
-            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-2 rounded-full border border-paper/25 px-3.5 py-1 font-display text-sm">
+                <span className={`h-2.5 w-2.5 rounded-full ${dot} ${status === "online" ? "animate-pulse" : ""}`} />
+                {statusLabel}
+              </span>
+              {status === "online" && (
+                <span className="anim-pop inline-flex items-center gap-1.5 rounded-full bg-egg px-3.5 py-1 font-display text-sm text-ink">
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-tomato opacity-75" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-tomato" />
+                  </span>
+                  지금 {onlineCount}명 접속
+                </span>
+              )}
+            </div>
           </div>
 
           <p className="mt-1.5 text-sm font-light text-mist/80">
@@ -189,6 +205,25 @@ export default function SyncTab({
               {copiedKey === "link" ? "복사됐어요!" : "초대 링크 복사"}
             </button>
           </div>
+
+          {/* 연결 상태 바로 확인 — 파트너에게 손 흔들기 */}
+          <button
+            onClick={onWave}
+            disabled={status !== "online"}
+            className="btn-sign mt-2.5 flex w-full items-center justify-center gap-2.5 rounded-2xl border-2 border-egg/60 bg-paper/10 px-4 py-3.5 font-display text-lg text-egg transition hover:bg-paper/20 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <motion.span
+              animate={status === "online" ? { rotate: [0, -18, 14, -18, 14, 0] } : {}}
+              transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+              className="text-2xl"
+            >
+              👋
+            </motion.span>
+            파트너에게 손 흔들기 — 연결 확인
+          </button>
+          <p className="mt-1.5 text-center text-[11px] font-light text-mist/60">
+            누르면 상대 화면에 👋가 크게 떠요. 이게 보이면 둘이 제대로 이어진 거예요!
+          </p>
 
           <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-paper/15 pt-4">
             <p className="text-sm font-light text-mist">
@@ -305,6 +340,11 @@ export default function SyncTab({
                 링크가 있으면 방을 열고 쓸 수 있어요.
               </li>
               <li>같은 방을 쓰는 기기끼리는 메뉴·이력·오늘 저녁이 통째로 일치해요.</li>
+              <li>
+                방 카드 위 <b className="font-semibold text-ink">「지금 N명 접속」</b> 배지로 누가 켜 있는지 알 수 있고,{" "}
+                <b className="font-semibold text-ink">「👋 손 흔들기」</b>를 누르면 상대 화면에 크게 떠서 연결 여부를 바로 확인할 수
+                있어요.
+              </li>
               <li>동기화를 꺼도 지금까지의 기록은 이 기기에 그대로 남아요.</li>
             </ul>
           </div>

@@ -215,6 +215,25 @@ export function PhoneIcon(p: P) {
   );
 }
 
+export function HelpIcon(p: P) {
+  return (
+    <svg {...base(p)}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M9.4 9.3a2.7 2.7 0 1 1 3.8 2.5c-.75.3-1.2.85-1.2 1.7" />
+      <circle cx="12" cy="16.6" r="0.7" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+export function LinkIcon(p: P) {
+  return (
+    <svg {...base(p)}>
+      <path d="M10 14a4.5 4.5 0 0 0 6.4.4l2.4-2.4a4.5 4.5 0 1 0-6.4-6.4l-1.3 1.3" />
+      <path d="M14 10a4.5 4.5 0 0 0-6.4-.4l-2.4 2.4a4.5 4.5 0 1 0 6.4 6.4l1.3-1.3" />
+    </svg>
+  );
+}
+
 export function SparkIcon(p: P) {
   return (
     <svg {...base(p)}>

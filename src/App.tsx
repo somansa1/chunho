@@ -17,9 +17,10 @@ import Picker from "./components/Picker";
 import MenuBoard from "./components/MenuBoard";
 import HistoryLog from "./components/HistoryLog";
 import StatsBoard from "./components/StatsBoard";
-import { BowlIcon, BookIcon, CalendarIcon, ChartIcon, DiceIcon, DownloadIcon, PotIcon } from "./components/icons";
+import HelpGuide from "./components/HelpGuide";
+import { BowlIcon, BookIcon, CalendarIcon, ChartIcon, DiceIcon, DownloadIcon, HelpIcon, PotIcon } from "./components/icons";
 
-type TabId = "pick" | "menu" | "log" | "stats";
+type TabId = "pick" | "menu" | "log" | "stats" | "guide";
 
 interface InstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -31,6 +32,7 @@ const TABS: { id: TabId; label: string; icon: (p: { size?: number; className?: s
   { id: "menu", label: "우리 메뉴판", icon: (p) => <BookIcon {...p} /> },
   { id: "log", label: "저녁 이력", icon: (p) => <CalendarIcon {...p} /> },
   { id: "stats", label: "통계", icon: (p) => <ChartIcon {...p} /> },
+  { id: "guide", label: "사용 설명", icon: (p) => <HelpIcon {...p} /> },
 ];
 
 export default function App() {
@@ -256,6 +258,7 @@ export default function App() {
               />
             )}
             {tab === "stats" && <StatsBoard history={history} menus={menus} />}
+            {tab === "guide" && <HelpGuide />}
           </motion.div>
         </AnimatePresence>
       </main>

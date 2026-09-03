@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import type { SyncConfig, SyncStatus } from "../lib/sync";
-import { generateRoomCode, inviteLinkFor, readInviteParams, validateSyncInput } from "../lib/sync";
+import {
+  generateRoomCode,
+  getEmbeddedSyncConfig,
+  inviteLinkFor,
+  readInviteParams,
+  validateSyncInput,
+} from "../lib/sync";
 import {
   CheckIcon,
   CloudIcon,
@@ -94,9 +100,13 @@ export default function SyncTab({
   onWave,
 }: Props) {
   const invited = useMemo(() => readInviteParams(), []);
+  const embedded = useMemo(() => getEmbeddedSyncConfig(), []);
+  const easyMode = !!embedded;
+  const effectiveUrl = invited.url ?? embedded?.url ?? null;
+  const effectiveKey = invited.key ?? embedded?.anonKey ?? null;
 
-  const [url, setUrl] = useState(() => invited.url ?? "");
-  const [anonKey, setAnonKey] = useState(() => invited.key ?? "");
+  const [url, setUrl] = useState(() => invited.url ?? embedded?.url ?? "");
+  const [anonKey, setAnonKey] = useState(() => invited.key ?? embedded?.anonKey ?? "");
   const [room, setRoom] = useState(() => invited.room ?? generateRoomCode());
   const [formError, setFormError] = useState("");
   const [armedStop, setArmedStop] = useState(false);
@@ -110,25 +120,33 @@ export default function SyncTab({
     return () => window.clearInterval(t);
   }, [config]);
 
-  // 초대 링크에 URL·키까지 담겨 있으면 알아서 연결 시작
+  // 초대 링크로 오거나 내장 연결이 있으면 알아서 연결 시작
   useEffect(() => {
     if (config || autoStarted.current) return;
-    if (!invited.room || !invited.url || !invited.key) return;
-    if (validateSyncInput(invited.url, invited.key)) return;
+    if (!invited.room || !effectiveUrl || !effectiveKey) return;
+    if (validateSyncInput(effectiveUrl, effectiveKey)) return;
     autoStarted.current = true;
     const t = window.setTimeout(() => {
       onEnable({
-        url: invited.url!.trim().replace(/\/+$/, ""),
-        anonKey: invited.key!.trim(),
+        url: effectiveUrl.trim().replace(/\/+$/, ""),
+        anonKey: effectiveKey.trim(),
         roomCode: invited.room!.trim(),
       });
     }, 350);
     return () => window.clearTimeout(t);
-  }, [config, invited, onEnable]);
+  }, [config, invited, effectiveUrl, effectiveKey, onEnable]);
 
-  const inviteLink = inviteLinkFor(room, url.trim() || undefined, anonKey.trim() || undefined);
-  const fullInviteLink = config ? inviteLinkFor(config.roomCode, config.url, config.anonKey) : inviteLink;
-  const wifeMessage = `💌 우리 저녁 당번 앱 초대!\n\n이 링크를 눌러보세요 🍲\n${fullInviteLink}\n\n누르면 자동으로 연결이 시작돼요. (링크에 URL·키가 다 들어있어요 — 우리 둘만 공유해요 ❤️)`;
+  const inviteLink = easyMode
+    ? inviteLinkFor(room)
+    : inviteLinkFor(room, url.trim() || undefined, anonKey.trim() || undefined);
+  const fullInviteLink = config
+    ? easyMode
+      ? inviteLinkFor(config.roomCode)
+      : inviteLinkFor(config.roomCode, config.url, config.anonKey)
+    : inviteLink;
+  const wifeMessage = easyMode
+    ? `💌 우리 저녁 당번 앱 초대!\n\n이 링크를 눌러보세요 🍲\n${fullInviteLink}\n\n누르기만 하면 자동으로 연결돼요. 가입도, 설정도 필요 없어요 ❤️`
+    : `💌 우리 저녁 당번 앱 초대!\n\n이 링크를 눌러보세요 🍲\n${fullInviteLink}\n\n누르면 자동으로 연결이 시작돼요. (링크에 URL·키가 다 들어있어요 — 우리 둘만 공유해요 ❤️)`;
 
   function submit() {
     const err = validateSyncInput(url, anonKey);
@@ -362,15 +380,37 @@ export default function SyncTab({
           <ShareIcon size={26} className="text-tomato" /> 와이프랑 같이 쓰기
         </h2>
         <p className="mt-2 max-w-2xl text-[15px] font-light leading-relaxed text-ink-soft">
-          지금은 저녁 기록이 <b className="font-semibold text-ink">기기마다 따로</b> 저장돼서, 와이프가 골라둔 메뉴가 안 보여요. 무료
-          서비스인 <b className="font-semibold text-ink">Supabase</b>를 둘만의 공유 냉장고처럼 쓰면 — 와이프가 저녁을 고르는 순간{" "}
-          <b className="font-semibold text-tomato-deep">1초 만에 이 화면에</b> 뜹니다. 아래 4단계만 따라 하면 돼요. (5분 컷)
+          저녁 기록을 <b className="font-semibold text-ink">기기마다 따로</b> 저장하면 상대방이 골라둔 메뉴가 안 보여요. 동기화를
+          켜면 — 상대방이 저녁을 고르는 순간 <b className="font-semibold text-tomato-deep">이 화면에 바로</b> 뜹니다.
+          {easyMode ? (
+            <>
+              {" "}
+              <b className="font-semibold text-ssam-deep">이 사이트는 내장 연결이 돼 있어서 방 코드만 있으면 끝!</b> 커플끼리, 친구끼리
+              누구나 바로 쓸 수 있어요.
+            </>
+          ) : (
+            <>
+              {" "}
+              무료 서비스인 <b className="font-semibold text-ink">Supabase</b>를 둘만의 공유 냉장고처럼 쓰면 돼요. 아래 4단계만 따라
+              하면 돼요. (5분 컷)
+            </>
+          )}
         </p>
       </section>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1.15fr_1fr] lg:items-start">
         {/* 단계들 */}
         <div className="space-y-4">
+          {easyMode ? (
+            <StepCard n={1} title="가입·설정이 필요 없어요 — 내장 연결!">
+              <p>
+                이 사이트는 <b className="font-semibold text-ink">동기화 서버가 이미 연결돼 있어서</b> Supabase 가입, SQL 실행, 키
+                복사 같은 게 <b className="font-semibold text-ink">전부 필요 없어요</b>. 오른쪽에서 방 코드를 정하고「같이 쓰기
+                시작!」만 누르면 끝 — 친구 커플에게 이 주소를 알려줘도 똑같이 바로 쓸 수 있어요.
+              </p>
+            </StepCard>
+          ) : (
+          <>
           <StepCard n={1} title="Supabase 무료 가입 + 프로젝트 만들기">
             <GoLink href="https://supabase.com/dashboard" label="Supabase 대시보드 새 탭으로 열기" />
             <ul className="mt-2.5 space-y-1.5">
@@ -483,12 +523,23 @@ export default function SyncTab({
               ⚠ 바로 아래 <b>service_role / secret</b> 키는 관리자용이라 절대 쓰면 안 돼요. 꼭 <b>anon public</b> 쪽을 복사하세요.
             </p>
           </StepCard>
+          </>
+          )}
 
-          <StepCard n={4} title="오른쪽 상자에 붙여넣고 시작!">
+          <StepCard n={easyMode ? 2 : 4} title={easyMode ? "초대 링크 보내면 끝!" : "오른쪽 상자에 붙여넣고 시작!"}>
             <p>
-              붙여넣고 <b className="font-semibold text-ink">「같이 쓰기 시작!」</b>을 누르면 방이 열려요. 그다음엔{" "}
-              <b className="font-semibold text-ink">초대 링크</b>를 와이프께 카톡으로 보내면 끝 — 링크에 URL·키가{" "}
-              <b className="font-semibold text-ink">자동으로 담겨 있어서</b>, 와이프는 링크만 누르면 알아서 연결돼요.
+              {easyMode ? (
+                <>
+                  방을 열고 <b className="font-semibold text-ink">초대 링크</b>를 보내면, 받는 사람은 링크를 누르는 것만으로{" "}
+                  <b className="font-semibold text-ink">자동 연결</b>돼요. 붙여넣을 것도, 가입할 것도 없어요.
+                </>
+              ) : (
+                <>
+                  붙여넣고 <b className="font-semibold text-ink">「같이 쓰기 시작!」</b>을 누르면 방이 열려요. 그다음엔{" "}
+                  <b className="font-semibold text-ink">초대 링크</b>를 와이프께 카톡으로 보내면 끝 — 링크에 URL·키가{" "}
+                  <b className="font-semibold text-ink">자동으로 담겨 있어서</b>, 와이프는 링크만 누르면 알아서 연결돼요.
+                </>
+              )}
             </p>
           </StepCard>
         </div>
@@ -498,36 +549,48 @@ export default function SyncTab({
           <h3 className="flex items-center gap-2 font-display text-xl text-ink">
             <CloudIcon size={21} className="text-ssam" /> 연결 정보 넣기
           </h3>
-          {invited.room && invited.url && invited.key && (
+          {invited.room && effectiveUrl && effectiveKey && (
             <p className="anim-pop mt-2.5 rounded-xl bg-ssam/12 px-3.5 py-2 text-xs font-medium text-ssam-deep">
-              🎉 초대 링크에 모든 정보가 담겨 있어요 — 방 코드(<b>{invited.room}</b>)로 자동 연결되는 중이에요!
+              🎉 초대 링크로 오셨네요! 방 코드(<b>{invited.room}</b>)로 자동 연결되는 중이에요!
             </p>
           )}
-          {invited.room && !(invited.url && invited.key) && (
+          {invited.room && !(effectiveUrl && effectiveKey) && (
             <p className="anim-pop mt-2.5 rounded-xl bg-egg/25 px-3.5 py-2 text-xs font-medium text-[#8a6200]">
               🎉 초대 링크로 오셨네요! 방 코드(<b>{invited.room}</b>)는 채워뒀어요. URL이랑 키만 붙여넣으면 돼요.
             </p>
           )}
 
-          <label className="mt-4 block">
-            <span className="text-xs font-semibold text-ink-soft">프로젝트 URL</span>
-            <input
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://abcdefgh.supabase.co"
-              className="mt-1.5 w-full rounded-xl border-2 border-line bg-paper/60 px-3.5 py-2.5 font-mono text-xs outline-none transition focus:border-ssam"
-            />
-          </label>
+          {easyMode ? (
+            <p className="mt-4 flex items-start gap-2.5 rounded-xl border-2 border-ssam/40 bg-ssam/10 px-4 py-3 text-xs font-medium leading-relaxed text-ssam-deep">
+              <CloudIcon size={16} className="mt-0.5 shrink-0" />
+              <span>
+                <b className="font-semibold">내장 연결이 켜져 있어요.</b> 이 사이트는 동기화 서버가 이미 세팅돼 있어서 URL·키를 넣을
+                필요가 없어요 — 방 코드만 정하면 끝!
+              </span>
+            </p>
+          ) : (
+            <>
+              <label className="mt-4 block">
+                <span className="text-xs font-semibold text-ink-soft">프로젝트 URL</span>
+                <input
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  placeholder="https://abcdefgh.supabase.co"
+                  className="mt-1.5 w-full rounded-xl border-2 border-line bg-paper/60 px-3.5 py-2.5 font-mono text-xs outline-none transition focus:border-ssam"
+                />
+              </label>
 
-          <label className="mt-3.5 block">
-            <span className="text-xs font-semibold text-ink-soft">anon public 키</span>
-            <input
-              value={anonKey}
-              onChange={(e) => setAnonKey(e.target.value)}
-              placeholder="eyJhbGciOiJIUzI1NiIs…"
-              className="mt-1.5 w-full rounded-xl border-2 border-line bg-paper/60 px-3.5 py-2.5 font-mono text-xs outline-none transition focus:border-ssam"
-            />
-          </label>
+              <label className="mt-3.5 block">
+                <span className="text-xs font-semibold text-ink-soft">anon public 키</span>
+                <input
+                  value={anonKey}
+                  onChange={(e) => setAnonKey(e.target.value)}
+                  placeholder="eyJhbGciOiJIUzI1NiIs…"
+                  className="mt-1.5 w-full rounded-xl border-2 border-line bg-paper/60 px-3.5 py-2.5 font-mono text-xs outline-none transition focus:border-ssam"
+                />
+              </label>
+            </>
+          )}
 
           <label className="mt-3.5 block">
             <span className="text-xs font-semibold text-ink-soft">우리 방 코드</span>

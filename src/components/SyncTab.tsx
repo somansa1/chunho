@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { SyncConfig, SyncStatus } from "../lib/sync";
-import { generateRoomCode, inviteLinkFor, validateSyncInput } from "../lib/sync";
+import { generateRoomCode, inviteLinkFor, readInviteParams, validateSyncInput } from "../lib/sync";
 import {
   CheckIcon,
   CloudIcon,
@@ -88,15 +88,16 @@ export default function SyncTab({
   onDisable,
   onForceSync,
 }: Props) {
-  const invitedRoom = useMemo(() => new URLSearchParams(location.search).get("room"), []);
+  const invited = useMemo(() => readInviteParams(), []);
 
-  const [url, setUrl] = useState("");
-  const [anonKey, setAnonKey] = useState("");
-  const [room, setRoom] = useState(() => invitedRoom ?? generateRoomCode());
+  const [url, setUrl] = useState(() => invited.url ?? "");
+  const [anonKey, setAnonKey] = useState(() => invited.key ?? "");
+  const [room, setRoom] = useState(() => invited.room ?? generateRoomCode());
   const [formError, setFormError] = useState("");
   const [armedStop, setArmedStop] = useState(false);
   const [, setTick] = useState(0);
   const { copiedKey, copy } = useCopy();
+  const autoStarted = useRef(false);
 
   useEffect(() => {
     if (!config) return;
@@ -104,7 +105,25 @@ export default function SyncTab({
     return () => window.clearInterval(t);
   }, [config]);
 
-  const inviteLink = inviteLinkFor(room);
+  // 초대 링크에 URL·키까지 담겨 있으면 알아서 연결 시작
+  useEffect(() => {
+    if (config || autoStarted.current) return;
+    if (!invited.room || !invited.url || !invited.key) return;
+    if (validateSyncInput(invited.url, invited.key)) return;
+    autoStarted.current = true;
+    const t = window.setTimeout(() => {
+      onEnable({
+        url: invited.url!.trim().replace(/\/+$/, ""),
+        anonKey: invited.key!.trim(),
+        roomCode: invited.room!.trim(),
+      });
+    }, 350);
+    return () => window.clearTimeout(t);
+  }, [config, invited, onEnable]);
+
+  const inviteLink = inviteLinkFor(room, url.trim() || undefined, anonKey.trim() || undefined);
+  const fullInviteLink = config ? inviteLinkFor(config.roomCode, config.url, config.anonKey) : inviteLink;
+  const wifeMessage = `💌 우리 저녁 당번 앱 초대!\n\n이 링크를 눌러보세요 🍲\n${fullInviteLink}\n\n누르면 자동으로 연결이 시작돼요. (링크에 URL·키가 다 들어있어요 — 우리 둘만 공유해요 ❤️)`;
 
   function submit() {
     const err = validateSyncInput(url, anonKey);
@@ -161,7 +180,7 @@ export default function SyncTab({
               {copiedKey === "code" ? "복사됐어요!" : "방 코드 복사"}
             </button>
             <button
-              onClick={() => copy("link", inviteLinkFor(config.roomCode))}
+              onClick={() => copy("link", fullInviteLink)}
               className="btn-sign btn-sign-ink inline-flex items-center justify-center gap-2 rounded-full bg-tomato px-4 py-2.5 font-display text-card"
             >
               {copiedKey === "link" ? <CheckIcon size={17} /> : <LinkIcon size={17} />}
@@ -226,33 +245,15 @@ export default function SyncTab({
               <PhoneIcon size={19} className="text-tomato" /> 와이프에게 보낼 내용 (한 번에 복사)
             </h3>
             <p className="mt-2 text-sm font-light leading-relaxed text-ink-soft">
-              링크·URL·키가 <b className="font-semibold text-ink">전부 들어있는 메시지</b>예요. 복사해서 카톡으로 그대로 붙여넣으면 돼요.
-              와이프는 <b className="font-semibold text-ink">가입도, 만들 것도 없이</b> 붙여넣기만 하면 끝!
+              링크 하나에 <b className="font-semibold text-ink">방 코드·URL·키가 전부 담겨 있어요</b>. 복사해서 카톡으로 보내면, 와이프는{" "}
+              <b className="font-semibold text-ink">링크만 누르면 자동으로 연결</b>돼요. 붙여넣을 것도 없어요!
             </p>
             <div className="relative mt-3">
-              <pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded-xl border-2 border-dashed border-ssam/50 bg-mist/40 p-4 pr-24 text-xs leading-relaxed text-ink">
-                {`💌 우리 저녁 당번 앱 초대!
-
-1) 아래 링크를 누르세요 (폰·PC 아무데서나):
-${inviteLinkFor(config.roomCode)}
-
-2) 「같이 쓰기」 탭에 아래 두 개를 붙여넣으세요:
-
-프로젝트 URL
-${config.url}
-
-anon 키
-${config.anonKey}
-
-3) 「같이 쓰기 시작!」 누르면 연결 완료 ✅`}
+              <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-all rounded-xl border-2 border-dashed border-ssam/50 bg-mist/40 p-4 pr-24 text-xs leading-relaxed text-ink">
+                {wifeMessage}
               </pre>
               <button
-                onClick={() =>
-                  copy(
-                    "message",
-                    `💌 우리 저녁 당번 앱 초대!\n\n1) 아래 링크를 누르세요 (폰·PC 아무데서나):\n${inviteLinkFor(config.roomCode)}\n\n2) 「같이 쓰기」 탭에 아래 두 개를 붙여넣으세요:\n\n프로젝트 URL\n${config.url}\n\nanon 키\n${config.anonKey}\n\n3) 「같이 쓰기 시작!」 누르면 연결 완료 ✅`
-                  )
-                }
+                onClick={() => copy("message", wifeMessage)}
                 className="btn-sign btn-sign-green absolute right-2.5 top-2.5 inline-flex items-center gap-1.5 rounded-full bg-ssam px-3.5 py-1.5 font-display text-xs text-card"
               >
                 {copiedKey === "message" ? <CheckIcon size={13} /> : <CopyIcon size={13} />}
@@ -269,19 +270,20 @@ ${config.anonKey}
               <li className="flex gap-2.5">
                 <MiniNum>1</MiniNum>
                 <span>
-                  와이프가 <b className="font-semibold text-ink">링크를 누르면</b> 방 코드가 자동으로 채워져 열려요.
+                  와이프가 <b className="font-semibold text-ink">링크를 누르면</b> 앱이 열리면서{" "}
+                  <b className="font-semibold text-ink">「초대 링크로 자동 연결되는 중」</b>이라고 떠요.
                 </span>
               </li>
               <li className="flex gap-2.5">
                 <MiniNum>2</MiniNum>
                 <span>
-                  메시지에 들어있는 <b className="font-semibold text-ink">URL과 키를 그대로 붙여넣고</b> 「같이 쓰기 시작!」을 눌러요.
+                  1~2초 뒤 <b className="font-semibold text-ink">「같이 쓰는 중」</b> 배지가 켜지면서 연결 완료 — 붙여넣을 것도 없어요.
                 </span>
               </li>
               <li className="flex gap-2.5">
                 <MiniNum>3</MiniNum>
                 <span>
-                  끝 — 그 순간부터 <b className="font-semibold text-ink">한쪽에서 고르면 다른 쪽에 1초 만에</b> 떠요.
+                  그 순간부터 <b className="font-semibold text-ink">한쪽에서 고르면 다른 쪽에 1초 만에</b> 떠요.
                 </span>
               </li>
             </ol>
@@ -297,7 +299,8 @@ ${config.anonKey}
                 한참 아래예요.
               </li>
               <li>
-                <b className="font-semibold text-ink">방 코드가 비밀번호 역할</b>을 해요. 아는 사람한테만 알려주세요.
+                <b className="font-semibold text-ink">초대 링크에 연결 키가 들어 있어요.</b> 방 코드와 마찬가지로 둘만 공유하세요 —
+                링크가 있으면 방을 열고 쓸 수 있어요.
               </li>
               <li>같은 방을 쓰는 기기끼리는 메뉴·이력·오늘 저녁이 통째로 일치해요.</li>
               <li>동기화를 꺼도 지금까지의 기록은 이 기기에 그대로 남아요.</li>
@@ -442,8 +445,8 @@ ${config.anonKey}
           <StepCard n={4} title="오른쪽 상자에 붙여넣고 시작!">
             <p>
               붙여넣고 <b className="font-semibold text-ink">「같이 쓰기 시작!」</b>을 누르면 방이 열려요. 그다음엔{" "}
-              <b className="font-semibold text-ink">초대 링크</b>를 와이프께 카톡으로 보내면 끝 — 링크를 열면 방 코드가 자동으로
-              채워져 있어서 와이프는 URL·키만 붙여넣으면 돼요.
+              <b className="font-semibold text-ink">초대 링크</b>를 와이프께 카톡으로 보내면 끝 — 링크에 URL·키가{" "}
+              <b className="font-semibold text-ink">자동으로 담겨 있어서</b>, 와이프는 링크만 누르면 알아서 연결돼요.
             </p>
           </StepCard>
         </div>
@@ -453,9 +456,14 @@ ${config.anonKey}
           <h3 className="flex items-center gap-2 font-display text-xl text-ink">
             <CloudIcon size={21} className="text-ssam" /> 연결 정보 넣기
           </h3>
-          {invitedRoom && (
+          {invited.room && invited.url && invited.key && (
+            <p className="anim-pop mt-2.5 rounded-xl bg-ssam/12 px-3.5 py-2 text-xs font-medium text-ssam-deep">
+              🎉 초대 링크에 모든 정보가 담겨 있어요 — 방 코드(<b>{invited.room}</b>)로 자동 연결되는 중이에요!
+            </p>
+          )}
+          {invited.room && !(invited.url && invited.key) && (
             <p className="anim-pop mt-2.5 rounded-xl bg-egg/25 px-3.5 py-2 text-xs font-medium text-[#8a6200]">
-              🎉 초대 링크로 오셨네요! 방 코드(<b>{invitedRoom}</b>)는 채워뒀어요. URL이랑 키만 붙여넣으면 돼요.
+              🎉 초대 링크로 오셨네요! 방 코드(<b>{invited.room}</b>)는 채워뒀어요. URL이랑 키만 붙여넣으면 돼요.
             </p>
           )}
 

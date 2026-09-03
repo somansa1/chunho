@@ -18,9 +18,11 @@ import MenuBoard from "./components/MenuBoard";
 import HistoryLog from "./components/HistoryLog";
 import StatsBoard from "./components/StatsBoard";
 import HelpGuide from "./components/HelpGuide";
-import { BowlIcon, BookIcon, CalendarIcon, ChartIcon, DiceIcon, DownloadIcon, HelpIcon, PotIcon } from "./components/icons";
+import SyncTab from "./components/SyncTab";
+import { connectSync, type SyncConfig, type SyncHandle, type SyncStatus } from "./lib/sync";
+import { BowlIcon, BookIcon, CalendarIcon, ChartIcon, DiceIcon, DownloadIcon, HelpIcon, PotIcon, ShareIcon } from "./components/icons";
 
-type TabId = "pick" | "menu" | "log" | "stats" | "guide";
+type TabId = "pick" | "menu" | "log" | "stats" | "guide" | "sync";
 
 interface InstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -32,6 +34,7 @@ const TABS: { id: TabId; label: string; icon: (p: { size?: number; className?: s
   { id: "menu", label: "우리 메뉴판", icon: (p) => <BookIcon {...p} /> },
   { id: "log", label: "저녁 이력", icon: (p) => <CalendarIcon {...p} /> },
   { id: "stats", label: "통계", icon: (p) => <ChartIcon {...p} /> },
+  { id: "sync", label: "같이 쓰기", icon: (p) => <ShareIcon {...p} /> },
   { id: "guide", label: "사용 설명", icon: (p) => <HelpIcon {...p} /> },
 ];
 
@@ -66,6 +69,79 @@ export default function App() {
     window.clearTimeout(toastTimer.current);
     toastTimer.current = window.setTimeout(() => setToast(null), 2600);
   }, []);
+
+  /* ---------- 실시간 동기화 (같이 쓰기) ---------- */
+  const [syncCfg, setSyncCfg] = usePersistentState<SyncConfig | null>("dinner-duo.sync.v1", null);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>("off");
+  const [syncMsg, setSyncMsg] = useState("");
+  const [lastSyncAt, setLastSyncAt] = useState<number | null>(null);
+  const syncRef = useRef<SyncHandle | null>(null);
+  const applyingRemote = useRef(false);
+  const syncReady = useRef(false);
+  const lastSavedAt = useRef(0);
+
+  // 최신 로컬 데이터를 담는 거울 (연결·푸시 시점에 읽는다)
+  const latest = useRef({ menus, history, settings, tonight });
+  latest.current = { menus, history, settings, tonight };
+
+  useEffect(() => {
+    syncReady.current = false;
+    if (!syncCfg) {
+      setSyncStatus("off");
+      setSyncMsg("");
+      return;
+    }
+    const handle = connectSync(syncCfg, () => ({ ...latest.current, savedAt: Date.now() }), {
+      onStatus: (s, m) => {
+        setSyncStatus(s);
+        if (m) setSyncMsg(m);
+      },
+      onRemote: (doc, kind) => {
+        if (doc.savedAt <= lastSavedAt.current) return; // 이미 반영된 것
+        lastSavedAt.current = doc.savedAt;
+        setLastSyncAt(doc.savedAt);
+        applyingRemote.current = true;
+        setMenus(doc.menus);
+        setHistory(doc.history);
+        setSettings(doc.settings);
+        setTonight(doc.tonight);
+        if (kind === "live") showToast("상대방 기기에서 변경사항이 도착했어요");
+      },
+      onPushed: (savedAt) => {
+        lastSavedAt.current = savedAt;
+        setLastSyncAt(savedAt);
+      },
+      onReady: () => {
+        syncReady.current = true;
+      },
+    });
+    syncRef.current = handle;
+    return () => {
+      handle.disconnect();
+      syncRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [syncCfg?.url, syncCfg?.anonKey, syncCfg?.roomCode]);
+
+  // 로컬 변경 → 0.7초 뒤 업로드 (연속 변경은 한 번만)
+  useEffect(() => {
+    if (!syncCfg) return;
+    if (applyingRemote.current) {
+      applyingRemote.current = false;
+      return;
+    }
+    if (!syncReady.current) return;
+    const t = window.setTimeout(() => {
+      syncRef.current?.push({ ...latest.current, savedAt: Date.now() });
+    }, 700);
+    return () => window.clearTimeout(t);
+  }, [menus, history, settings, tonight, syncCfg]);
+
+  const forceSync = useCallback(() => {
+    if (!syncRef.current) return;
+    syncRef.current.push({ ...latest.current, savedAt: Date.now() });
+    showToast("지금 동기화했어요");
+  }, [showToast]);
 
   /* ---------- 저녁 확정 ---------- */
   const confirmDinner = useCallback(
@@ -156,6 +232,26 @@ export default function App() {
                 className="btn-sign btn-sign-ink inline-flex items-center gap-1.5 rounded-full bg-egg px-3.5 py-1 font-display text-sm text-ink"
               >
                 <DownloadIcon size={14} /> 앱으로 설치
+              </button>
+            )}
+            {syncCfg && (
+              <button
+                onClick={() => setTab("sync")}
+                className="inline-flex items-center gap-1.5 rounded-full border-2 border-line bg-card px-3 py-0.5 text-xs font-semibold text-ink-soft transition hover:border-ssam/60 hover:text-ssam-deep"
+                title="같이 쓰기 설정 열기"
+              >
+                <span
+                  className={`h-2 w-2 rounded-full ${
+                    syncStatus === "online"
+                      ? "animate-pulse bg-ssam"
+                      : syncStatus === "connecting"
+                        ? "animate-pulse bg-egg-deep"
+                        : syncStatus === "error"
+                          ? "bg-tomato"
+                          : "bg-line"
+                  }`}
+                />
+                {syncStatus === "online" ? "같이 쓰는 중" : syncStatus === "connecting" ? "연결 중…" : syncStatus === "error" ? "동기화 오류" : "동기화 꺼짐"}
               </button>
             )}
           </div>
@@ -258,6 +354,25 @@ export default function App() {
               />
             )}
             {tab === "stats" && <StatsBoard history={history} menus={menus} />}
+            {tab === "sync" && (
+              <SyncTab
+                config={syncCfg}
+                status={syncStatus}
+                statusMessage={syncMsg}
+                lastSyncAt={lastSyncAt}
+                menuCount={menus.length}
+                historyCount={history.length}
+                onEnable={(cfg) => {
+                  setSyncCfg(cfg);
+                  showToast("같이 쓰기를 켜는 중이에요…");
+                }}
+                onDisable={() => {
+                  setSyncCfg(null);
+                  showToast("같이 쓰기를 껐어요. 기록은 이 기기에 그대로 있어요.");
+                }}
+                onForceSync={forceSync}
+              />
+            )}
             {tab === "guide" && <HelpGuide />}
           </motion.div>
         </AnimatePresence>
